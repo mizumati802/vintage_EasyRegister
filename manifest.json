@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "vintage_EasyRegister",
+  "version": "1.2",
+  "description": "Quick input support for Vintage Extend",
+  "permissions": [
+    "activeTab",
+    "clipboardWrite",
+    "storage",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://database-app-6ms4.onrender.com/*",
+    "https://jp.mercari.com/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://jp.mercari.com/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ]
+}
