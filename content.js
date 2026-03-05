@@ -2,6 +2,7 @@ const VintageExtender = {
   API_BASE: 'https://database-app-6ms4.onrender.com',
   state: {
     nextId: '...',
+    templates: {}, // { "小物": "...", "トップス": "..." }
     currentTemplateRaw: '',
     hashtags: '#古着 #used #セレクト'
   },
@@ -22,15 +23,13 @@ const VintageExtender = {
     const panel = document.createElement('div');
     panel.id = 'vintage-extender-panel';
     panel.innerHTML = `
-      <div class="ve-header"><span>EasyRegister Complete</span><button class="ve-close" id="ve-close-btn">×</button></div>
+      <div class="ve-header"><span>EasyRegister v2.1</span><button class="ve-close" id="ve-close-btn">×</button></div>
       <div class="ve-body">
-        <!-- 上段: 商品番号 -->
         <div class="ve-field" style="text-align:center; border-bottom:1px solid #333; padding-bottom:10px;">
           <span class="ve-label" style="margin:0;">PRODUCT ID</span>
           <div id="ve-next-id" class="ve-id-display" style="font-size:24px;">...</div>
         </div>
 
-        <!-- 中段: 入力系 -->
         <div class="ve-field">
           <label class="ve-label">ITEM NAME / {title} <span id="ve-char-cnt" style="float:right; font-weight:normal; color:#888;">0/40</span></label>
           <div style="display:flex; gap:5px;">
@@ -48,12 +47,8 @@ const VintageExtender = {
           <div class="ve-field"><label class="ve-label">PRICE</label><input type="number" id="ve-price" class="ve-input"></div>
           <div class="ve-field"><label class="ve-label">DISC(%)</label>
             <select id="ve-discount" class="ve-select">
-              <option value="0">0</option>
-              <option value="20">20</option>
-              <option value="30">30</option>
-              <option value="50">50</option>
-              <option value="60">60</option>
-              <option value="70">70</option>
+              <option value="0">0</option><option value="20">20</option><option value="30">30</option>
+              <option value="50">50</option><option value="60">60</option><option value="70">70</option>
             </select>
           </div>
         </div>
@@ -70,11 +65,10 @@ const VintageExtender = {
           </div>
         </div>
 
-        <!-- 下段: 組み立て結果 -->
         <div class="ve-field">
           <label class="ve-label">OUTPUT / DESCRIPTION (WORD)</label>
           <textarea id="ve-word-textla" class="ve-textarea" style="height:150px; background:#000; color:#efefef; font-size:11px;"></textarea>
-          <button id="ve-copy-word-btn" class="ve-btn" style="margin-top:5px;">完成文をコピー</button>
+          <button id="ve-copy-word-btn" class="ve-btn" style="margin-top:5px; background:#1b5e20;">完成文をコピー</button>
         </div>
 
         <div class="ve-field"><label class="ve-label">MEMO (DB ONLY)</label><textarea id="ve-memo" class="ve-textarea-small" style="height:40px;"></textarea></div>
@@ -85,21 +79,22 @@ const VintageExtender = {
     `;
     document.body.appendChild(panel);
 
-    // --- ロジック: リアルタイム置換 (vintage_routes.py 準拠) ---
+    // --- ロジック: リアルタイム置換 (メモリ参照型) ---
     const updateOutput = () => {
-      const titleEl = document.getElementById('ve-item-name');
-      const title = titleEl.value;
+      const title = document.getElementById('ve-item-name').value;
       const freeWord = document.getElementById('ve-free-word').value;
       const pid = document.getElementById('ve-next-id').innerText;
       const condKey = document.getElementById('ve-condition').value;
       const fullCond = VintageExtender.MAP2[condKey] || '良好';
+      const tplName = document.getElementById('ve-template').value;
       
       // 文字数カウント
       const cntEl = document.getElementById('ve-char-cnt');
       cntEl.innerText = `${title.length}/40`;
       cntEl.style.color = title.length > 40 ? '#ff4d4f' : '#888';
 
-      let finalWord = VintageExtender.state.currentTemplateRaw || "{description}\n\n状態:{full_condition}\n\n{hashtags}";
+      // メモリからテンプレート本文を取得
+      const rawTemplate = VintageExtender.state.templates[tplName] || "{description}\n\n状態:{full_condition}\n\n{hashtags}";
 
       const replacements = {
         "{description}": freeWord || "",
@@ -109,51 +104,35 @@ const VintageExtender = {
         "{full_condition}": fullCond
       };
 
+      let finalWord = rawTemplate;
       for (const [k, v] of Object.entries(replacements)) {
         finalWord = finalWord.split(k).join(v || "");
       }
       document.getElementById('ve-word-textla').value = finalWord.trim();
 
-      // 価格計算
       const p = document.getElementById('ve-price').value || 0;
       const d = document.getElementById('ve-discount').value || 0;
       document.getElementById('ve-calc-price').innerText = '¥' + Math.floor(p * (1 - d/100)).toLocaleString();
     };
 
-    // イベント登録
-    ['ve-item-name', 've-free-word', 've-price', 've-discount', 've-condition'].forEach(id => {
+    // イベント登録 (updateOutput を直接呼ぶ)
+    ['ve-item-name', 've-free-word', 've-price', 've-discount', 've-condition', 've-template'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateOutput);
       document.getElementById(id).addEventListener('change', updateOutput);
     });
 
-    const fetchTemplate = async (name) => {
-      try {
-        const res = await fetch(`${VintageExtender.API_BASE}/api/external/query`, {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ sql: "SELECT txt FROM template_button WHERE title = %s", params: [name] })
-        }).then(r => r.json());
-        if (res.success && res.data.length > 0) {
-          VintageExtender.state.currentTemplateRaw = res.data[0].txt;
-          updateOutput();
-        }
-      } catch (e) { console.error(e); }
-    };
-
-    document.getElementById('ve-template').onchange = (e) => fetchTemplate(e.target.value);
-
-    // コピー
-    const setupCopy = (btnId, targetId, isInput) => {
+    const setupCopy = (btnId, targetId) => {
       document.getElementById(btnId).onclick = () => {
-        const val = isInput ? document.getElementById(targetId).value : document.getElementById(targetId).innerText;
+        const val = document.getElementById(targetId).value;
         navigator.clipboard.writeText(val).then(() => {
           const btn = document.getElementById(btnId);
-          const old = btn.innerText; btn.innerText = 'OK!'; btn.style.background = '#28a745';
-          setTimeout(() => { btn.innerText = old; btn.style.background = ''; }, 1000);
+          const old = btn.innerText; btn.innerText = 'OK!';
+          setTimeout(() => { btn.innerText = old; }, 1000);
         });
       };
     };
-    setupCopy('ve-copy-title-btn', 've-item-name', true);
-    setupCopy('ve-copy-word-btn', 've-word-textla', true);
+    setupCopy('ve-copy-title-btn', 've-item-name');
+    setupCopy('ve-copy-word-btn', 've-word-textla');
 
     const toggle = (open) => {
       panel.style.display = open ? 'block' : 'none';
@@ -166,12 +145,21 @@ const VintageExtender = {
     document.getElementById('ve-close-btn').onclick = () => toggle(false);
 
     const fetchConfig = async () => {
-      const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/config`).then(r => r.json());
-      if (res.success) {
-        document.getElementById('ve-next-id').innerText = res.next_id;
-        document.getElementById('ve-template').innerHTML = res.templates.map(t => `<option value="${t}">${t}</option>`).join('');
-        if (res.templates.length > 0) fetchTemplate(res.templates[0]);
-      }
+      try {
+        const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/config`).then(r => r.json());
+        if (res.success) {
+          // メモリにテンプレート全データを格納 (title をキーにする)
+          VintageExtender.state.templates = res.templates.reduce((acc, t) => {
+            acc[t.title] = t.txt;
+            return acc;
+          }, {});
+
+          document.getElementById('ve-next-id').innerText = res.next_id;
+          document.getElementById('ve-template').innerHTML = res.templates.map(t => `<option value="${t.title}">${t.title}</option>`).join('');
+          
+          updateOutput(); // 初期描画
+        }
+      } catch (e) { console.error('Config fetch failed', e); }
     };
 
     document.getElementById('ve-save-btn').onclick = async () => {
@@ -183,30 +171,26 @@ const VintageExtender = {
         purchase_price: document.getElementById('ve-calc-price').innerText.replace(/[¥,]/g, ''),
         memo: document.getElementById('ve-memo').value,
         cond2: condKey,
-        condition: VintageExtender.MAP2[condKey] || '良好', // 追加: DBのconditionカラム用
+        condition: VintageExtender.MAP2[condKey] || '良好',
         template_name: document.getElementById('ve-template').value,
         purchase_id: document.getElementById('ve-next-id').innerText,
-        description: document.getElementById('ve-free-word').value, // 追加: {description}用
-        word_textla: document.getElementById('ve-word-textla').value // 完成文
+        description: document.getElementById('ve-free-word').value,
+        word_textla: document.getElementById('ve-word-textla').value
       };
       if (!data.item_name) return alert('商品名を入力してください');
       
-      saveBtn.disabled = true;
-      status.innerText = 'Saving...';
+      saveBtn.disabled = true; status.innerText = 'Saving...';
       const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/save`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
       }).then(r => r.json());
 
       if (res.success) {
-        const originalText = saveBtn.innerText;
         saveBtn.innerText = '✅ 保存完了！';
         saveBtn.style.background = '#28a745';
-        
         ['ve-item-name', 've-free-word', 've-memo'].forEach(id => document.getElementById(id).value = '');
         fetchConfig();
-
         setTimeout(() => {
-          saveBtn.innerText = originalText;
+          saveBtn.innerText = '保存';
           saveBtn.style.background = '';
           saveBtn.disabled = false;
           status.innerText = '';
@@ -217,6 +201,7 @@ const VintageExtender = {
       }
     };
 
+    await fetchConfig();
     chrome.storage.local.get(['isPanelOpen'], (r) => toggle(r.isPanelOpen));
   }
 };
