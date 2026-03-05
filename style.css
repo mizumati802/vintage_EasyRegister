@@ -1,7 +1,7 @@
 #vintage-extender-panel {
   position: fixed;
-  top: 200px; /* 200px下へ */
-  left: 200px; /* 200px右へ */
+  top: 100px;
+  left: 100px;
   width: 350px;
   background: #1e1e1e;
   border: 1px solid #444;
@@ -16,8 +16,8 @@
 /* 展開用ランチャーボタン */
 #ve-launcher {
   position: fixed;
-  top: 200px; /* 200px下へ */
-  left: 200px; /* 200px右へ */
+  top: 100px;
+  left: 100px;
   width: 48px;
   height: 48px;
   background: #ef515a;

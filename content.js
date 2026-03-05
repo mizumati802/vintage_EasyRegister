@@ -1,77 +1,147 @@
 const VintageExtender = {
   API_BASE: 'https://database-app-6ms4.onrender.com',
+  state: {
+    nextId: '...',
+    currentTemplateRaw: '',
+    hashtags: '#古着 #used #セレクト'
+  },
+
+  MAP2: {
+    'noStains': '致命的なダメージではないため「目立った傷や汚れなし」ですが、軽微な使用感（スレ・小キズ・毛玉・やや点シミ・ナイロン革製品のスレ等）や検品の見落としがある場合があります。中古品の特性をご理解ください。',
+    'someWear': '使用感や小傷等の中古品特有の状態（綿製品・ニット類の毛玉、ナイロン・革製品のスレ、アクセサリーの小キズ、やや点シミ、検品の見落とし等）がある場合があります。写真をご確認の上ご購入ください。',
+    'junk': '一部に剥がれや劣化があり、使用感に加えて不具合のあるジャンク品です。修理等を行ってからのご使用をお勧めします。写真をご確認の上ご購入ください。'
+  },
 
   init: async () => {
     if (document.getElementById('vintage-extender-panel')) return;
 
-    // 1. UI作成 (シンプルに配置)
     const launcher = document.createElement('div');
-    launcher.id = 've-launcher'; launcher.innerText = 'V';
+    launcher.id = 've-launcher'; launcher.innerText = 'E';
     document.body.appendChild(launcher);
 
     const panel = document.createElement('div');
     panel.id = 'vintage-extender-panel';
     panel.innerHTML = `
-      <div class="ve-header"><span>vintage_EasyRegister</span><button class="ve-close" id="ve-close-btn">×</button></div>
+      <div class="ve-header"><span>EasyRegister Complete</span><button class="ve-close" id="ve-close-btn">×</button></div>
       <div class="ve-body">
-        <div class="ve-field"><span class="ve-label">ID</span><div id="ve-next-id" class="ve-id-display">...</div></div>
+        <!-- 上段: 商品番号 -->
+        <div class="ve-field" style="text-align:center; border-bottom:1px solid #333; padding-bottom:10px;">
+          <span class="ve-label" style="margin:0;">PRODUCT ID</span>
+          <div id="ve-next-id" class="ve-id-display" style="font-size:24px;">...</div>
+        </div>
+
+        <!-- 中段: 入力系 -->
         <div class="ve-field">
-          <label class="ve-label">ITEM NAME</label>
+          <label class="ve-label">ITEM NAME / {title}</label>
           <div style="display:flex; gap:5px;">
-            <input type="text" id="ve-item-name" class="ve-input">
-            <button id="ve-copy-name-btn" style="padding:0 10px; background:#eee; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-size:11px;">Copy</button>
+            <input type="text" id="ve-item-name" class="ve-input" placeholder="Title...">
+            <button id="ve-copy-title-btn" class="ve-mini-btn">Copy</button>
           </div>
         </div>
+
+        <div class="ve-field">
+          <label class="ve-label">FREE WORD / {description}</label>
+          <textarea id="ve-free-word" class="ve-textarea-small" placeholder="Size, details..."></textarea>
+        </div>
+
         <div class="ve-row">
           <div class="ve-field"><label class="ve-label">PRICE</label><input type="number" id="ve-price" class="ve-input"></div>
           <div class="ve-field"><label class="ve-label">DISC(%)</label>
             <select id="ve-discount" class="ve-select">
-              <option value="0">0</option><option value="20">20</option><option value="30">30</option>
-              <option value="50">50</option><option value="60">60</option><option value="70">70</option>
+              <option value="0">0</option><option value="20">20</option><option value="30">30</option><option value="50">50</option>
             </select>
           </div>
         </div>
-        <div class="ve-field" style="color:#28a745; font-weight:bold; text-align:right;">適用後: ¥<span id="ve-calculated-price">0</span></div>
-        <div class="ve-field"><label class="ve-label">TEMPLATE</label><select id="ve-template" class="ve-select"></select></div>
-        <div class="ve-field"><label class="ve-label">CONDITION</label>
-          <select id="ve-condition" class="ve-select">
-            <option value="noStains">目立った傷なし</option><option value="someWear">やや傷あり</option><option value="junk">ジャンク</option>
-          </select>
+        <div id="ve-calc-price" style="text-align:right; color:#28a745; font-weight:bold; font-size:12px; margin-bottom:10px;">¥0</div>
+
+        <div class="ve-row">
+          <div class="ve-field"><label class="ve-label">TEMPLATE</label><select id="ve-template" class="ve-select"></select></div>
+          <div class="ve-field"><label class="ve-label">CONDITION</label>
+            <select id="ve-condition" class="ve-select">
+              <option value="noStains">良好</option><option value="someWear">使用感</option><option value="junk">ジャンク</option>
+            </select>
+          </div>
         </div>
-        <div class="ve-field"><label class="ve-label">MEMO</label><textarea id="ve-memo" class="ve-textarea"></textarea></div>
-        <button id="ve-save-btn" class="ve-btn">SAVE</button>
+
+        <!-- 下段: 組み立て結果 -->
+        <div class="ve-field">
+          <label class="ve-label">OUTPUT / DESCRIPTION (WORD)</label>
+          <textarea id="ve-word-textla" class="ve-textarea" style="height:150px; background:#000; color:#0f0; font-size:11px;"></textarea>
+          <button id="ve-copy-word-btn" class="ve-btn" style="margin-top:5px; background:#444;">Copy Completed Description</button>
+        </div>
+
+        <div class="ve-field"><label class="ve-label">MEMO (DB ONLY)</label><textarea id="ve-memo" class="ve-textarea-small" style="height:40px;"></textarea></div>
+        
+        <button id="ve-save-btn" class="ve-btn" style="background:#ff5a5f; font-weight:bold;">SAVE TO POOL</button>
         <div id="ve-status" class="ve-status"></div>
       </div>
     `;
     document.body.appendChild(panel);
 
-    // コピー機能
-    document.getElementById('ve-copy-name-btn').onclick = () => {
-      const name = document.getElementById('ve-item-name').value;
-      navigator.clipboard.writeText(name).then(() => {
-        const btn = document.getElementById('ve-copy-name-btn');
-        const original = btn.innerText;
-        btn.innerText = 'OK!';
-        btn.style.background = '#28a745';
-        btn.style.color = '#fff';
-        setTimeout(() => {
-          btn.innerText = original;
-          btn.style.background = '#eee';
-          btn.style.color = '#000';
-        }, 1000);
-      });
-    };
+    // --- ロジック: リアルタイム置換 (vintage_routes.py 準拠) ---
+    const updateOutput = () => {
+      const title = document.getElementById('ve-item-name').value;
+      const freeWord = document.getElementById('ve-free-word').value;
+      const pid = document.getElementById('ve-next-id').innerText;
+      const condKey = document.getElementById('ve-condition').value;
+      const fullCond = VintageExtender.MAP2[condKey] || '良好';
+      
+      let finalWord = VintageExtender.state.currentTemplateRaw || "{description}\n\n状態:{full_condition}\n\n{hashtags}";
 
-    // 2. 価格計算 (vintage.js 準拠のシンプル版)
-    const updatePrice = () => {
+      const replacements = {
+        "{description}": freeWord || title || '商品詳細',
+        "{hashtags}": VintageExtender.state.hashtags,
+        "{product_id}": pid,
+        "{title}": title,
+        "{full_condition}": fullCond
+      };
+
+      for (const [k, v] of Object.entries(replacements)) {
+        finalWord = finalWord.split(k).join(v || "");
+      }
+      document.getElementById('ve-word-textla').value = finalWord.trim();
+
+      // 価格計算
       const p = document.getElementById('ve-price').value || 0;
       const d = document.getElementById('ve-discount').value || 0;
-      document.getElementById('ve-calculated-price').innerText = Math.floor(p * (1 - d/100)).toLocaleString();
+      document.getElementById('ve-calc-price').innerText = '¥' + Math.floor(p * (1 - d/100)).toLocaleString();
     };
-    document.getElementById('ve-price').oninput = updatePrice;
-    document.getElementById('ve-discount').onchange = updatePrice;
 
-    // 3. 開閉とデータ取得
+    // イベント登録
+    ['ve-item-name', 've-free-word', 've-price', 've-discount', 've-condition'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateOutput);
+      document.getElementById(id).addEventListener('change', updateOutput);
+    });
+
+    const fetchTemplate = async (name) => {
+      try {
+        const res = await fetch(`${VintageExtender.API_BASE}/api/external/query`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ sql: "SELECT txt FROM template_button WHERE title = %s", params: [name] })
+        }).then(r => r.json());
+        if (res.success && res.data.length > 0) {
+          VintageExtender.state.currentTemplateRaw = res.data[0].txt;
+          updateOutput();
+        }
+      } catch (e) { console.error(e); }
+    };
+
+    document.getElementById('ve-template').onchange = (e) => fetchTemplate(e.target.value);
+
+    // コピー
+    const setupCopy = (btnId, targetId, isInput) => {
+      document.getElementById(btnId).onclick = () => {
+        const val = isInput ? document.getElementById(targetId).value : document.getElementById(targetId).innerText;
+        navigator.clipboard.writeText(val).then(() => {
+          const btn = document.getElementById(btnId);
+          const old = btn.innerText; btn.innerText = 'OK!'; btn.style.background = '#28a745';
+          setTimeout(() => { btn.innerText = old; btn.style.background = ''; }, 1000);
+        });
+      };
+    };
+    setupCopy('ve-copy-title-btn', 've-item-name', true);
+    setupCopy('ve-copy-word-btn', 've-word-textla', true);
+
     const toggle = (open) => {
       panel.style.display = open ? 'block' : 'none';
       launcher.style.display = open ? 'none' : 'flex';
@@ -87,35 +157,33 @@ const VintageExtender = {
       if (res.success) {
         document.getElementById('ve-next-id').innerText = res.next_id;
         document.getElementById('ve-template').innerHTML = res.templates.map(t => `<option value="${t}">${t}</option>`).join('');
+        if (res.templates.length > 0) fetchTemplate(res.templates[0]);
       }
     };
 
-    // 4. 保存
     document.getElementById('ve-save-btn').onclick = async () => {
       const status = document.getElementById('ve-status');
       const data = {
         item_name: document.getElementById('ve-item-name').value,
-        purchase_price: document.getElementById('ve-calculated-price').innerText.replace(/,/g, ''),
+        purchase_price: document.getElementById('ve-calc-price').innerText.replace(/[¥,]/g, ''),
         memo: document.getElementById('ve-memo').value,
         cond2: document.getElementById('ve-condition').value,
         template_name: document.getElementById('ve-template').value,
-        purchase_id: document.getElementById('ve-next-id').innerText
+        purchase_id: document.getElementById('ve-next-id').innerText,
+        word_textla: document.getElementById('ve-word-textla').value // 完成文
       };
       if (!data.item_name) return alert('商品名を入力してください');
-      
       status.innerText = 'Saving...';
       const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/save`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
       }).then(r => r.json());
-
       if (res.success) {
         status.innerText = 'Saved!';
-        ['ve-item-name', 've-price', 've-memo'].forEach(id => document.getElementById(id).value = '');
-        updatePrice(); fetchConfig();
+        ['ve-item-name', 've-free-word', 've-price', 've-memo'].forEach(id => document.getElementById(id).value = '');
+        fetchConfig();
       }
     };
 
-    // 初期状態復元
     chrome.storage.local.get(['isPanelOpen'], (r) => toggle(r.isPanelOpen));
   }
 };
