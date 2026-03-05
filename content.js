@@ -79,7 +79,7 @@ const VintageExtender = {
 
         <div class="ve-field"><label class="ve-label">MEMO (DB ONLY)</label><textarea id="ve-memo" class="ve-textarea-small" style="height:40px;"></textarea></div>
         
-        <button id="ve-save-btn" class="ve-btn" style="background:#ff5a5f; font-weight:bold;">SAVE TO POOL</button>
+        <button id="ve-save-btn" class="ve-btn" style="background:#ff5a5f; font-weight:bold;">保存</button>
         <div id="ve-status" class="ve-status"></div>
       </div>
     `;
@@ -175,6 +175,7 @@ const VintageExtender = {
     };
 
     document.getElementById('ve-save-btn').onclick = async () => {
+      const saveBtn = document.getElementById('ve-save-btn');
       const status = document.getElementById('ve-status');
       const condKey = document.getElementById('ve-condition').value;
       const data = {
@@ -189,14 +190,30 @@ const VintageExtender = {
         word_textla: document.getElementById('ve-word-textla').value // 完成文
       };
       if (!data.item_name) return alert('商品名を入力してください');
+      
+      saveBtn.disabled = true;
       status.innerText = 'Saving...';
       const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/save`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
       }).then(r => r.json());
+
       if (res.success) {
-        status.innerText = 'Saved!';
+        const originalText = saveBtn.innerText;
+        saveBtn.innerText = '✅ 保存完了！';
+        saveBtn.style.background = '#28a745';
+        
         ['ve-item-name', 've-free-word', 've-memo'].forEach(id => document.getElementById(id).value = '');
         fetchConfig();
+
+        setTimeout(() => {
+          saveBtn.innerText = originalText;
+          saveBtn.style.background = '';
+          saveBtn.disabled = false;
+          status.innerText = '';
+        }, 1500);
+      } else {
+        status.innerText = '❌ Error: ' + res.message;
+        saveBtn.disabled = false;
       }
     };
 
