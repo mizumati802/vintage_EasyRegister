@@ -2,15 +2,18 @@
   position: fixed;
   top: 100px;
   left: 100px;
-  width: 350px;
-  background: #1e1e1e;
-  border: 1px solid #444;
+  width: 340px;
+  background: #121212;
+  color: #f1f1f1;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.8);
   z-index: 10000;
+  border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #e0e0e0;
-  display: none; /* 初期状態は非表示 */
+  overflow: hidden;
 }
 
 /* 展開用ランチャーボタン */
@@ -18,9 +21,9 @@
   position: fixed;
   top: 100px;
   left: 100px;
-  width: 48px;
-  height: 48px;
-  background: #ef515a;
+  width: 44px;
+  height: 44px;
+  background: #ff5a5f;
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -30,134 +33,154 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   z-index: 10001;
   font-weight: bold;
-  font-size: 20px;
+  font-size: 18px;
   transition: transform 0.2s, background 0.2s;
 }
 
 #ve-launcher:hover {
   transform: scale(1.1);
-  background: #d4434b;
+  background: #ff4449;
 }
 
 .ve-header {
-  padding: 14px;
-  background: #2d2d2d;
-  border-bottom: 1px solid #444;
+  padding: 12px 15px;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 12px 12px 0 0;
-  font-weight: bold;
-  color: #ef515a;
 }
 
-.ve-body {
-  padding: 15px;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.ve-field {
-  margin-bottom: 14px;
-}
-
-.ve-label {
-  font-size: 10px;
+.ve-header span {
+  font-size: 11px;
+  font-weight: 800;
   color: #888;
-  margin-bottom: 4px;
-  display: block;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.ve-input, .ve-select, .ve-textarea {
-  width: 100%;
-  padding: 10px;
-  background: #2d2d2d;
-  border: 1px solid #444;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #fff;
-  box-sizing: border-box;
-}
-
-.ve-input:focus, .ve-select:focus, .ve-textarea:focus {
-  outline: none;
-  border-color: #ef515a;
-  box-shadow: 0 0 0 2px rgba(239, 81, 90, 0.2);
-}
-
-.ve-textarea {
-  height: 90px;
-  resize: vertical;
-}
-
-.ve-row {
-  display: flex;
-  gap: 12px;
-}
-
-.ve-row > .ve-field {
-  flex: 1;
-}
-
-.ve-btn {
-  width: 100%;
-  padding: 12px;
-  background: #ef515a;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background 0.2s;
-}
-
-.ve-btn:hover {
-  background: #d4434b;
-}
-
-.ve-btn:disabled {
-  background: #555;
-  color: #888;
-  cursor: not-allowed;
+  letter-spacing: 1px;
 }
 
 .ve-close {
   background: none;
   border: none;
-  font-size: 20px;
-  cursor: pointer;
   color: #666;
+  font-size: 18px;
+  cursor: pointer;
 }
 
-.ve-close:hover {
-  color: #999;
+.ve-close:hover { color: #fff; }
+
+.ve-body {
+  padding: 15px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #444 #121212;
+}
+
+.ve-body::-webkit-scrollbar { width: 5px; }
+.ve-body::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+.ve-field { margin-bottom: 15px; }
+
+.ve-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #555;
+  margin-bottom: 5px;
+  display: block;
+  text-transform: uppercase;
 }
 
 .ve-id-display {
-  font-size: 16px;
-  color: #ef515a;
-  font-weight: bold;
+  font-family: 'Roboto Mono', monospace;
+  color: #ff5a5f;
+  font-weight: 800;
   letter-spacing: 1px;
 }
 
-.ve-status {
-  margin-top: 12px;
-  font-size: 12px;
-  text-align: center;
-  min-height: 18px;
-  color: #888;
+.ve-input, .ve-select, .ve-textarea, .ve-textarea-small {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
 }
 
-.ve-body::-webkit-scrollbar {
-  width: 6px;
+.ve-input:focus, .ve-textarea:focus {
+  border-color: #ff5a5f;
+  outline: none;
 }
-.ve-body::-webkit-scrollbar-track {
-  background: #1e1e1e;
+
+.ve-textarea {
+  height: 140px;
+  resize: vertical;
+  line-height: 1.5;
 }
-.ve-body::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 3px;
+
+.ve-textarea-small {
+  height: 60px;
+  resize: vertical;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.ve-row {
+  display: flex;
+  gap: 10px;
+}
+
+.ve-row > .ve-field { flex: 1; }
+
+.ve-mini-btn {
+  background: #1b5e20;
+  color: #fff;
+  border: none;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ve-mini-btn:hover { background: #2e7d32; }
+
+#ve-copy-word-btn {
+  background: #1b5e20;
+}
+
+#ve-copy-word-btn:hover {
+  background: #2e7d32;
+}
+
+.ve-btn {
+  width: 100%;
+  padding: 12px;
+  background: #ff5a5f;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 14px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.ve-btn:hover { background: #ff4449; }
+.ve-btn:active { transform: scale(0.98); }
+
+.ve-status {
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* 価格表示の強調 */
+#ve-calc-price {
+  font-family: 'Roboto Mono', monospace;
 }

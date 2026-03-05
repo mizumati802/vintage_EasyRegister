@@ -32,10 +32,10 @@ const VintageExtender = {
 
         <!-- 中段: 入力系 -->
         <div class="ve-field">
-          <label class="ve-label">ITEM NAME / {title}</label>
+          <label class="ve-label">ITEM NAME / {title} <span id="ve-char-cnt" style="float:right; font-weight:normal; color:#888;">0/40</span></label>
           <div style="display:flex; gap:5px;">
             <input type="text" id="ve-item-name" class="ve-input" placeholder="Title...">
-            <button id="ve-copy-title-btn" class="ve-mini-btn">Copy</button>
+            <button id="ve-copy-title-btn" class="ve-mini-btn">コピー</button>
           </div>
         </div>
 
@@ -48,7 +48,12 @@ const VintageExtender = {
           <div class="ve-field"><label class="ve-label">PRICE</label><input type="number" id="ve-price" class="ve-input"></div>
           <div class="ve-field"><label class="ve-label">DISC(%)</label>
             <select id="ve-discount" class="ve-select">
-              <option value="0">0</option><option value="20">20</option><option value="30">30</option><option value="50">50</option>
+              <option value="0">0</option>
+              <option value="20">20</option>
+              <option value="30">30</option>
+              <option value="50">50</option>
+              <option value="60">60</option>
+              <option value="70">70</option>
             </select>
           </div>
         </div>
@@ -58,7 +63,9 @@ const VintageExtender = {
           <div class="ve-field"><label class="ve-label">TEMPLATE</label><select id="ve-template" class="ve-select"></select></div>
           <div class="ve-field"><label class="ve-label">CONDITION</label>
             <select id="ve-condition" class="ve-select">
-              <option value="noStains">良好</option><option value="someWear">使用感</option><option value="junk">ジャンク</option>
+              <option value="noStains">目立った傷無し</option>
+              <option value="someWear">使用やや汚れ</option>
+              <option value="junk">ジャンク</option>
             </select>
           </div>
         </div>
@@ -66,8 +73,8 @@ const VintageExtender = {
         <!-- 下段: 組み立て結果 -->
         <div class="ve-field">
           <label class="ve-label">OUTPUT / DESCRIPTION (WORD)</label>
-          <textarea id="ve-word-textla" class="ve-textarea" style="height:150px; background:#000; color:#0f0; font-size:11px;"></textarea>
-          <button id="ve-copy-word-btn" class="ve-btn" style="margin-top:5px; background:#444;">Copy Completed Description</button>
+          <textarea id="ve-word-textla" class="ve-textarea" style="height:150px; background:#000; color:#efefef; font-size:11px;"></textarea>
+          <button id="ve-copy-word-btn" class="ve-btn" style="margin-top:5px;">完成文をコピー</button>
         </div>
 
         <div class="ve-field"><label class="ve-label">MEMO (DB ONLY)</label><textarea id="ve-memo" class="ve-textarea-small" style="height:40px;"></textarea></div>
@@ -80,16 +87,22 @@ const VintageExtender = {
 
     // --- ロジック: リアルタイム置換 (vintage_routes.py 準拠) ---
     const updateOutput = () => {
-      const title = document.getElementById('ve-item-name').value;
+      const titleEl = document.getElementById('ve-item-name');
+      const title = titleEl.value;
       const freeWord = document.getElementById('ve-free-word').value;
       const pid = document.getElementById('ve-next-id').innerText;
       const condKey = document.getElementById('ve-condition').value;
       const fullCond = VintageExtender.MAP2[condKey] || '良好';
       
+      // 文字数カウント
+      const cntEl = document.getElementById('ve-char-cnt');
+      cntEl.innerText = `${title.length}/40`;
+      cntEl.style.color = title.length > 40 ? '#ff4d4f' : '#888';
+
       let finalWord = VintageExtender.state.currentTemplateRaw || "{description}\n\n状態:{full_condition}\n\n{hashtags}";
 
       const replacements = {
-        "{description}": freeWord || title || '商品詳細',
+        "{description}": freeWord || "",
         "{hashtags}": VintageExtender.state.hashtags,
         "{product_id}": pid,
         "{title}": title,
@@ -163,13 +176,16 @@ const VintageExtender = {
 
     document.getElementById('ve-save-btn').onclick = async () => {
       const status = document.getElementById('ve-status');
+      const condKey = document.getElementById('ve-condition').value;
       const data = {
         item_name: document.getElementById('ve-item-name').value,
         purchase_price: document.getElementById('ve-calc-price').innerText.replace(/[¥,]/g, ''),
         memo: document.getElementById('ve-memo').value,
-        cond2: document.getElementById('ve-condition').value,
+        cond2: condKey,
+        condition: VintageExtender.MAP2[condKey] || '良好', // 追加: DBのconditionカラム用
         template_name: document.getElementById('ve-template').value,
         purchase_id: document.getElementById('ve-next-id').innerText,
+        description: document.getElementById('ve-free-word').value, // 追加: {description}用
         word_textla: document.getElementById('ve-word-textla').value // 完成文
       };
       if (!data.item_name) return alert('商品名を入力してください');
@@ -179,7 +195,7 @@ const VintageExtender = {
       }).then(r => r.json());
       if (res.success) {
         status.innerText = 'Saved!';
-        ['ve-item-name', 've-free-word', 've-price', 've-memo'].forEach(id => document.getElementById(id).value = '');
+        ['ve-item-name', 've-free-word', 've-memo'].forEach(id => document.getElementById(id).value = '');
         fetchConfig();
       }
     };
