@@ -22,7 +22,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://jp.mercari.com/*"],
+      "matches": [
+        "https://jp.mercari.com/sell/create*",
+        "https://jp.mercari.com/sell/draft/*"
+      ],
       "js": ["content.js"],
       "css": ["style.css"]
     }

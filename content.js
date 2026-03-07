@@ -135,7 +135,7 @@ const VintageExtender = {
     setupCopy('ve-copy-word-btn', 've-word-textla');
 
     const toggle = (open) => {
-      panel.style.display = open ? 'block' : 'none';
+      panel.style.display = open ? 'flex' : 'none';
       launcher.style.display = open ? 'none' : 'flex';
       if (open) fetchConfig();
       chrome.storage.local.set({ isPanelOpen: open });
