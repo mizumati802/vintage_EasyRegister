@@ -24,6 +24,12 @@ const VintageExtender = {
     panel.id = 'vintage-extender-panel';
     panel.innerHTML = `
       <div class="ve-header"><span>EasyRegister v2.1</span><button class="ve-close" id="ve-close-btn">×</button></div>
+      <div id="ve-history-row" style="display:flex; gap:5px; padding:5px 10px; background:#1a1a1a; border-bottom:1px solid #333; align-items:center;">
+        <span class="ve-label" style="margin:0; flex-shrink:0;">HISTORY</span>
+        <button class="ve-mini-btn ve-hist-btn" data-idx="0" style="width:24px; height:20px; opacity:0.3;" disabled>1</button>
+        <button class="ve-mini-btn ve-hist-btn" data-idx="1" style="width:24px; height:20px; opacity:0.3;" disabled>2</button>
+        <button class="ve-mini-btn ve-hist-btn" data-idx="2" style="width:24px; height:20px; opacity:0.3;" disabled>3</button>
+      </div>
       <div class="ve-body">
         <div class="ve-field" style="text-align:center; border-bottom:1px solid #333; padding-bottom:10px;">
           <span class="ve-label" style="margin:0;">PRODUCT ID</span>
@@ -79,7 +85,67 @@ const VintageExtender = {
     `;
     document.body.appendChild(panel);
 
-    // --- ロジック: リアルタイム置換 (メモリ参照型) ---
+    const updateHistoryUI = () => {
+      chrome.storage.local.get(['ve_history'], (res) => {
+        const hist = res.ve_history || [];
+        document.querySelectorAll('.ve-hist-btn').forEach((btn, i) => {
+          if (hist[i]) {
+            btn.style.opacity = '1';
+            btn.disabled = false;
+            btn.title = hist[i].item_name;
+          } else {
+            btn.style.opacity = '0.3';
+            btn.disabled = true;
+          }
+        });
+      });
+    };
+
+    const saveToHistory = (item_name, word_textla, purchase_id) => {
+      chrome.storage.local.get(['ve_history'], (res) => {
+        let hist = res.ve_history || [];
+        hist.unshift({ item_name, word_textla, purchase_id, timestamp: Date.now() });
+        hist = hist.slice(0, 3);
+        chrome.storage.local.set({ ve_history: hist }, updateHistoryUI);
+      });
+    };
+
+    document.querySelectorAll('.ve-hist-btn').forEach(btn => {
+      btn.onclick = () => {
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        chrome.storage.local.get(['ve_history'], (res) => {
+          const item = (res.ve_history || [])[idx];
+          if (item) {
+            document.getElementById('ve-item-name').value = item.item_name;
+            document.getElementById('ve-word-textla').value = item.word_textla;
+            const idEl = document.getElementById('ve-next-id');
+            const labelEl = idEl.previousElementSibling;
+            idEl.innerText = item.purchase_id;
+            idEl.style.color = '#ffc107';
+            if (labelEl) {
+              labelEl.innerText = 'RESTORED ID';
+              labelEl.style.color = '#ffc107';
+            }
+            idEl.setAttribute('data-restored', 'true');
+            updateOutput();
+            // メルカリ側にも反映
+            const titleInput = document.querySelector('input[inputmode="text"]');
+            if (titleInput) {
+              titleInput.value = item.item_name;
+              titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            const descInput = document.querySelector('textarea.merInputNode') || 
+                              document.querySelector('.merInputNode textarea') ||
+                              document.querySelector('textarea[name="description"]');
+            if (descInput) {
+              descInput.value = item.word_textla;
+              descInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+          }
+        });
+      };
+    });
+
     const updateOutput = () => {
       const title = document.getElementById('ve-item-name').value;
       const freeWord = document.getElementById('ve-free-word').value;
@@ -87,15 +153,10 @@ const VintageExtender = {
       const condKey = document.getElementById('ve-condition').value;
       const fullCond = VintageExtender.MAP2[condKey] || '良好';
       const tplName = document.getElementById('ve-template').value;
-      
-      // 文字数カウント
       const cntEl = document.getElementById('ve-char-cnt');
       cntEl.innerText = `${title.length}/40`;
       cntEl.style.color = title.length > 40 ? '#ff4d4f' : '#888';
-
-      // メモリからテンプレート本文を取得
       const rawTemplate = VintageExtender.state.templates[tplName] || "{description}\n\n状態:{full_condition}\n\n{hashtags}";
-
       const replacements = {
         "{description}": freeWord || "",
         "{hashtags}": VintageExtender.state.hashtags,
@@ -103,19 +164,16 @@ const VintageExtender = {
         "{title}": title,
         "{full_condition}": fullCond
       };
-
       let finalWord = rawTemplate;
       for (const [k, v] of Object.entries(replacements)) {
         finalWord = finalWord.split(k).join(v || "");
       }
       document.getElementById('ve-word-textla').value = finalWord.trim();
-
       const p = document.getElementById('ve-price').value || 0;
       const d = document.getElementById('ve-discount').value || 0;
       document.getElementById('ve-calc-price').innerText = '¥' + Math.floor(p * (1 - d/100)).toLocaleString();
     };
 
-    // イベント登録 (updateOutput を直接呼ぶ)
     ['ve-item-name', 've-free-word', 've-price', 've-discount', 've-condition', 've-template'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateOutput);
       document.getElementById(id).addEventListener('change', updateOutput);
@@ -127,6 +185,19 @@ const VintageExtender = {
         navigator.clipboard.writeText(val).then(() => {
           const btn = document.getElementById(btnId);
           const old = btn.innerText; btn.innerText = 'OK!';
+          if (btnId === 've-copy-word-btn') {
+            const idEl = document.getElementById('ve-next-id');
+            const labelEl = idEl.previousElementSibling;
+            if (idEl.getAttribute('data-restored') === 'true') {
+              idEl.innerText = VintageExtender.state.nextId || '...';
+              idEl.style.color = '';
+              idEl.removeAttribute('data-restored');
+              if (labelEl) {
+                labelEl.innerText = 'PRODUCT ID';
+                labelEl.style.color = '';
+              }
+            }
+          }
           setTimeout(() => { btn.innerText = old; }, 1000);
         });
       };
@@ -137,7 +208,10 @@ const VintageExtender = {
     const toggle = (open) => {
       panel.style.display = open ? 'flex' : 'none';
       launcher.style.display = open ? 'none' : 'flex';
-      if (open) fetchConfig();
+      if (open) {
+        fetchConfig();
+        updateHistoryUI();
+      }
       chrome.storage.local.set({ isPanelOpen: open });
     };
 
@@ -148,16 +222,14 @@ const VintageExtender = {
       try {
         const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/config`).then(r => r.json());
         if (res.success) {
-          // メモリにテンプレート全データを格納 (title をキーにする)
           VintageExtender.state.templates = res.templates.reduce((acc, t) => {
             acc[t.title] = t.txt;
             return acc;
           }, {});
-
+          VintageExtender.state.nextId = res.next_id;
           document.getElementById('ve-next-id').innerText = res.next_id;
           document.getElementById('ve-template').innerHTML = res.templates.map(t => `<option value="${t.title}">${t.title}</option>`).join('');
-          
-          updateOutput(); // 初期描画
+          updateOutput();
         }
       } catch (e) { console.error('Config fetch failed', e); }
     };
@@ -166,8 +238,25 @@ const VintageExtender = {
       const saveBtn = document.getElementById('ve-save-btn');
       const status = document.getElementById('ve-status');
       const condKey = document.getElementById('ve-condition').value;
+      const itemName = document.getElementById('ve-item-name').value;
+      const wordTextLA = document.getElementById('ve-word-textla').value;
+
+      // メルカリ側にも反映
+      const titleInput = document.querySelector('input[inputmode="text"]');
+      if (titleInput) {
+        titleInput.value = itemName;
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const descInput = document.querySelector('textarea.merInputNode') || 
+                        document.querySelector('.merInputNode textarea') ||
+                        document.querySelector('textarea[name="description"]');
+      if (descInput) {
+        descInput.value = wordTextLA;
+        descInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
       const data = {
-        item_name: document.getElementById('ve-item-name').value,
+        item_name: itemName,
         purchase_price: document.getElementById('ve-calc-price').innerText.replace(/[¥,]/g, ''),
         memo: document.getElementById('ve-memo').value,
         cond2: condKey,
@@ -175,19 +264,21 @@ const VintageExtender = {
         template_name: document.getElementById('ve-template').value,
         purchase_id: document.getElementById('ve-next-id').innerText,
         description: document.getElementById('ve-free-word').value,
-        word_textla: document.getElementById('ve-word-textla').value
+        word_textla: wordTextLA
       };
       if (!data.item_name) return alert('商品名を入力してください');
-      
       saveBtn.disabled = true; status.innerText = 'Saving...';
       const res = await fetch(`${VintageExtender.API_BASE}/api/external/vintage_extend/save`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
       }).then(r => r.json());
-
       if (res.success) {
+        saveToHistory(itemName, wordTextLA, document.getElementById('ve-next-id').innerText);
         saveBtn.innerText = '✅ 保存完了！';
         saveBtn.style.background = '#28a745';
-        ['ve-item-name', 've-free-word', 've-memo'].forEach(id => document.getElementById(id).value = '');
+        ['ve-item-name', 've-free-word', 've-memo', 've-word-textla'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
         fetchConfig();
         setTimeout(() => {
           saveBtn.innerText = '保存';
@@ -207,3 +298,6 @@ const VintageExtender = {
 };
 
 VintageExtender.init();
+
+// Version: 2.1.2 - Final Test for Push Changes with multi-line message.
+
