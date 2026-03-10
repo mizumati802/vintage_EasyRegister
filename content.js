@@ -306,9 +306,14 @@ const VintageExtender = {
       }
     };
 
-    // 初期読み込み時の自動挿入（ストレージは消さない）
+    // 初期読み込み時の自動挿入（isNewがtrueの時のみ1回実行）
     chrome.storage.local.get(['pending_ai_data'], (res) => {
-      if (res.pending_ai_data) setAiData(res.pending_ai_data);
+      if (res.pending_ai_data && res.pending_ai_data.isNew) {
+        setAiData(res.pending_ai_data);
+        // フラグを倒して保存（データ自体は残す）
+        const updatedData = { ...res.pending_ai_data, isNew: false };
+        chrome.storage.local.set({ pending_ai_data: updatedData });
+      }
     });
 
     // 「吸い上げ」ボタンのアクション
@@ -399,7 +404,7 @@ const AiExtender = {
       if (!title && !desc) return alert('修正後の内容がありません');
 
       chrome.storage.local.set({ 
-        pending_ai_data: { title, description: desc } 
+        pending_ai_data: { title, description: desc, isNew: true } // 新着フラグ付与
       }, () => {
         const btn = panel.querySelector('#ai-send-all');
         const old = btn.innerText; btn.innerText = '✨ 転送予約完了！';
