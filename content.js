@@ -378,6 +378,7 @@ const AiExtender = {
 
     targetH1.parentNode.insertBefore(panel, targetH1.nextSibling);
     AiExtender.state.panel = panel;
+    AiExtender.state.panel.style.display = 'none'; // 初期状態は非表示
     AiExtender.state.titleArea = panel.querySelector('#ai-title-output');
     AiExtender.state.descArea = panel.querySelector('#ai-desc-output');
 
@@ -496,17 +497,20 @@ const AiExtender = {
   },
 
   init: () => {
-    document.addEventListener('mouseup', () => {
-      const selection = window.getSelection();
-      const selectedText = selection.toString().trim();
-      
-      const isDesc = !!(selection.anchorNode?.parentElement || null)?.closest('.merShowMore pre[data-testid="description"]');
-      const isTitle = !!(selection.anchorNode?.parentElement || null)?.closest('h1[class*="heading__"]');
+    if (document.getElementById('ai-extender-launcher')) return;
 
-      if (isDesc || isTitle) {
-        AiExtender.ensurePanel();
+    const launcher = document.createElement('div');
+    launcher.id = 'ai-extender-launcher';
+    launcher.innerText = 'AI';
+    document.body.appendChild(launcher);
+
+    launcher.onclick = () => {
+      const panel = AiExtender.ensurePanel();
+      if (panel) {
+        const isHidden = panel.style.display === 'none';
+        panel.style.display = isHidden ? 'flex' : 'none';
       }
-    });
+    };
 
     const observer = new MutationObserver(() => {
       if (AiExtender.state.panel && !document.contains(AiExtender.state.panel)) {
@@ -515,8 +519,7 @@ const AiExtender = {
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
-};
-
+  };
 // ==================================================================
 // 3. Router
 // ==================================================================
