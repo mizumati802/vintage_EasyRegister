@@ -24,7 +24,9 @@
     {
       "matches": [
         "https://jp.mercari.com/sell/create*",
-        "https://jp.mercari.com/sell/draft/*"
+        "https://jp.mercari.com/sell/draft/*",
+        "https://jp.mercari.com/item/*",
+        "https://jp.mercari.com/products/*"
       ],
       "js": ["content.js"],
       "css": ["style.css"]

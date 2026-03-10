@@ -29,6 +29,8 @@ const VintageExtender = {
         <button class="ve-mini-btn ve-hist-btn" data-idx="0" style="width:24px; height:20px; opacity:0.3;" disabled>1</button>
         <button class="ve-mini-btn ve-hist-btn" data-idx="1" style="width:24px; height:20px; opacity:0.3;" disabled>2</button>
         <button class="ve-mini-btn ve-hist-btn" data-idx="2" style="width:24px; height:20px; opacity:0.3;" disabled>3</button>
+        <div style="flex:1;"></div>
+        <button class="ve-mini-btn" id="ve-fetch-ai-btn" style="background:#6a11cb; padding:0 10px; height:20px; font-weight:bold;">吸い上げ</button>
       </div>
       <div class="ve-body">
         <div class="ve-field" style="text-align:center; border-bottom:1px solid #333; padding-bottom:10px;">
@@ -292,12 +294,233 @@ const VintageExtender = {
       }
     };
 
+    // 1.3 CHECK FOR PENDING AI DATA & FETCH ACTION
+    const setAiData = (data) => {
+      if (data.title) document.getElementById('ve-item-name').value = data.title;
+      if (data.description) document.getElementById('ve-free-word').value = data.description;
+      updateOutput();
+      const status = document.getElementById('ve-status');
+      if (status) {
+        status.innerText = '✨ AIデータをセットしました';
+        setTimeout(() => { status.innerText = ''; }, 3000);
+      }
+    };
+
+    // 初期読み込み時の自動挿入（ストレージは消さない）
+    chrome.storage.local.get(['pending_ai_data'], (res) => {
+      if (res.pending_ai_data) setAiData(res.pending_ai_data);
+    });
+
+    // 「吸い上げ」ボタンのアクション
+    document.getElementById('ve-fetch-ai-btn').onclick = () => {
+      chrome.storage.local.get(['pending_ai_data'], (res) => {
+        if (res.pending_ai_data) setAiData(res.pending_ai_data);
+        else alert('吸い上げるAIデータがありません');
+      });
+    };
+
     await fetchConfig();
     chrome.storage.local.get(['isPanelOpen'], (r) => toggle(r.isPanelOpen));
   }
 };
 
-VintageExtender.init();
+// ==================================================================
+// 2. AI Extender (Item Page Logic - Unified)
+// ==================================================================
+const AiExtender = {
+  state: {
+    panel: null,
+    titleArea: null,
+    descArea: null
+  },
+
+  getBrandName: () => {
+    const container = document.querySelector('[data-testid="item-size-and-brand-container"]');
+    if (!container) return "";
+    const brandEl = container.querySelector('.merText');
+    return brandEl ? brandEl.innerText.trim() : "";
+  },
+
+  // 統合パネルの生成と注入
+  ensurePanel: () => {
+    if (AiExtender.state.panel) return AiExtender.state.panel;
+
+    const targetH1 = document.querySelector('h1[class*="heading__"]');
+    if (!targetH1) return null;
+
+    const panel = document.createElement('div');
+    panel.className = 'ai-extender-unified-panel';
+    panel.innerHTML = `
+      <button class="ai-extender-all-btn" id="ai-fix-all">✨ まとめてAI修正（爆速）</button>
+      <div class="ai-extender-section" data-type="title">
+        <div class="ai-extender-label">TITLE CLEANING <span class="ai-extender-counter">0/40</span></div>
+        <div class="ai-extender-btn-group">
+          <button class="ai-extender-btn" id="ai-fix-title">タイトル修正</button>
+          <button class="ai-extender-copy-btn" data-target="title">コピー</button>
+        </div>
+        <textarea class="ai-extender-result" id="ai-title-output" placeholder="タイトルがここに表示されます..."></textarea>
+      </div>
+      <div class="ai-extender-section" data-type="desc">
+        <div class="ai-extender-label">DESCRIPTION CLEANING</div>
+        <div class="ai-extender-btn-group">
+          <button class="ai-extender-btn" id="ai-fix-desc">本文修正</button>
+          <button class="ai-extender-copy-btn" data-target="desc">コピー</button>
+        </div>
+        <textarea class="ai-extender-result" id="ai-desc-output" placeholder="商品説明がここに表示されます..."></textarea>
+      </div>
+      <button class="ai-extender-send-btn" id="ai-send-all">まとめてEasyRegisterへ転送</button>
+    `;
+
+    targetH1.parentNode.insertBefore(panel, targetH1.nextSibling);
+    AiExtender.state.panel = panel;
+    AiExtender.state.titleArea = panel.querySelector('#ai-title-output');
+    AiExtender.state.descArea = panel.querySelector('#ai-desc-output');
+
+    // イベント紐付け
+    panel.querySelector('#ai-fix-all').onclick = () => AiExtender.runAiAll();
+    panel.querySelector('#ai-fix-title').onclick = () => AiExtender.runAi('title');
+    panel.querySelector('#ai-fix-desc').onclick = () => AiExtender.runAi('desc');
+    
+    panel.querySelectorAll('.ai-extender-copy-btn').forEach(btn => {
+      btn.onclick = () => {
+        const targetId = btn.dataset.target === 'title' ? '#ai-title-output' : '#ai-desc-output';
+        const val = panel.querySelector(targetId).value;
+        if (!val) return;
+        navigator.clipboard.writeText(val).then(() => {
+          const old = btn.innerText; btn.innerText = 'COPIED!';
+          setTimeout(() => { btn.innerText = old; }, 1000);
+        });
+      };
+    });
+
+    panel.querySelector('#ai-send-all').onclick = () => {
+      const title = AiExtender.state.titleArea.value;
+      const desc = AiExtender.state.descArea.value;
+      if (!title && !desc) return alert('修正後の内容がありません');
+
+      chrome.storage.local.set({ 
+        pending_ai_data: { title, description: desc } 
+      }, () => {
+        const btn = panel.querySelector('#ai-send-all');
+        const old = btn.innerText; btn.innerText = '✨ 転送予約完了！';
+        setTimeout(() => { btn.innerText = old; }, 2000);
+      });
+    };
+
+    // 文字数カウント
+    const updateCounter = () => {
+      const len = AiExtender.state.titleArea.value.length;
+      const counter = panel.querySelector('.ai-extender-counter');
+      counter.innerText = `${len}/40`;
+      counter.style.color = len > 40 ? '#ff0211' : '#888';
+      counter.style.fontWeight = len > 40 ? 'bold' : 'normal';
+    };
+    AiExtender.state.titleArea.oninput = updateCounter;
+
+    return panel;
+  },
+
+  runAiAll: async () => {
+    const btn = AiExtender.state.panel.querySelector('#ai-fix-all');
+    btn.disabled = true;
+    const originalText = btn.innerText;
+    btn.innerText = '✨ 爆速AI実行中...';
+
+    try {
+      // タイトルと説明文を並列で実行
+      await Promise.all([
+        AiExtender.runAi('title', true),
+        AiExtender.runAi('desc', true)
+      ]);
+      btn.innerText = '✨ 一括修正完了！';
+      setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 2000);
+    } catch (err) {
+      alert('一括修正中にエラーが発生しました');
+      btn.disabled = false;
+      btn.innerText = originalText;
+    }
+  },
+
+  runAi: async (type, isSilent = false) => {
+    const selection = window.getSelection().toString().trim();
+    let originalContent = selection;
+
+    if (!originalContent) {
+      if (type === 'title') {
+        originalContent = document.querySelector('h1[class*="heading__"]')?.innerText.trim();
+      } else {
+        originalContent = document.querySelector('.merShowMore pre[data-testid="description"]')?.innerText.trim();
+      }
+    }
+
+    if (!originalContent) return alert('対象の文章が見つかりません。テキストを選択するかページを確認してください。');
+
+    const btn = AiExtender.state.panel.querySelector(type === 'title' ? '#ai-fix-title' : '#ai-fix-desc');
+    const output = type === 'title' ? AiExtender.state.titleArea : AiExtender.state.descArea;
+
+    if (!isSilent) { btn.disabled = true; btn.innerText = '実行中...'; }
+    try {
+      const endpoint = type === 'desc' 
+        ? `${VintageExtender.API_BASE}/api/external/mercari/description_refine`
+        : `${VintageExtender.API_BASE}/api/external/mercari/title_refine`;
+      const body = type === 'desc' 
+        ? { text: originalContent }
+        : { title: originalContent, brand: AiExtender.getBrandName() };
+
+      const res = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      }).then(r => r.json());
+
+      if (res.success) {
+        output.value = type === 'desc' ? res.refined_text : res.refined_title;
+        output.style.height = 'auto';
+        output.style.height = (output.scrollHeight + 10) + 'px';
+        if (type === 'title') output.dispatchEvent(new Event('input')); // カウント更新
+      } else { 
+        if (!isSilent) alert('Error: ' + res.message); 
+      }
+    } catch (err) { 
+      if (!isSilent) alert('API接続失敗'); 
+    }
+    finally { 
+      if (!isSilent) {
+        btn.disabled = false; 
+        btn.innerText = type === 'title' ? 'タイトル修正' : '本文修正'; 
+      }
+    }
+  },
+
+  init: () => {
+    document.addEventListener('mouseup', () => {
+      const selection = window.getSelection();
+      const selectedText = selection.toString().trim();
+      
+      const isDesc = !!(selection.anchorNode?.parentElement || null)?.closest('.merShowMore pre[data-testid="description"]');
+      const isTitle = !!(selection.anchorNode?.parentElement || null)?.closest('h1[class*="heading__"]');
+
+      if (isDesc || isTitle) {
+        AiExtender.ensurePanel();
+      }
+    });
+
+    const observer = new MutationObserver(() => {
+      if (AiExtender.state.panel && !document.contains(AiExtender.state.panel)) {
+        AiExtender.state.panel = null;
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+};
+
+// ==================================================================
+// 3. Router
+// ==================================================================
+const path = window.location.pathname;
+if (path.includes('/sell/create') || path.includes('/sell/draft/')) {
+  VintageExtender.init();
+} else if (path.includes('/item/') || path.includes('/products/')) {
+  AiExtender.init();
+}
 
 // Version: 2.1.2 - Final Test for Push Changes with multi-line message.
 
