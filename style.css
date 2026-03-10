@@ -136,15 +136,14 @@
    ================================================================== */
 .ai-extender-unified-panel {
   margin: 15px 0;
-  padding: 15px;
   background: #121212;
   border: 1px solid #333;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
 }
 
 .ai-extender-all-btn {
@@ -245,3 +244,26 @@
 .ai-extender-send-btn:hover { background-color: #2e7d32; }
 .ai-extender-btn:hover { opacity: 0.8; }
 .ai-extender-btn:disabled { background-color: #444; color: #777; cursor: not-allowed; }
+
+#ai-extender-launcher {
+  display: inline-flex;
+  margin: 10px 0;
+  padding: 8px 15px;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: #fff;
+  border-radius: 4px;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 100;
+  font-weight: bold;
+  font-size: 11px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.2s, opacity 0.2s;
+  width: fit-content;
+}
+
+#ai-extender-launcher:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}

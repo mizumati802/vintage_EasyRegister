@@ -335,6 +335,7 @@ const VintageExtender = {
 const AiExtender = {
   state: {
     panel: null,
+    launcher: null,
     titleArea: null,
     descArea: null
   },
@@ -346,6 +347,17 @@ const AiExtender = {
     return brandEl ? brandEl.innerText.trim() : "";
   },
 
+  toggle: (open) => {
+    const panel = AiExtender.ensurePanel();
+    if (!panel) return;
+    const launcher = AiExtender.state.launcher;
+
+    panel.style.display = open ? 'flex' : 'none';
+    if (launcher) launcher.style.display = open ? 'none' : 'inline-flex';
+
+    chrome.storage.local.set({ isAiPanelOpen: open });
+  },
+
   // 統合パネルの生成と注入
   ensurePanel: () => {
     if (AiExtender.state.panel) return AiExtender.state.panel;
@@ -355,30 +367,33 @@ const AiExtender = {
 
     const panel = document.createElement('div');
     panel.className = 'ai-extender-unified-panel';
+    panel.id = 'ai-extender-panel';
     panel.innerHTML = `
-      <button class="ai-extender-all-btn" id="ai-fix-all">✨ まとめてAI修正（爆速）</button>
-      <div class="ai-extender-section" data-type="title">
-        <div class="ai-extender-label">TITLE CLEANING <span class="ai-extender-counter">0/40</span></div>
-        <div class="ai-extender-btn-group">
-          <button class="ai-extender-btn" id="ai-fix-title">タイトル修正</button>
-          <button class="ai-extender-copy-btn" data-target="title">コピー</button>
+      <div class="ve-header"><span>AI EXTENDER</span><button class="ve-close" id="ai-close-btn">×</button></div>
+      <div class="ve-body" style="padding:10px; display:flex; flex-direction:column; gap:15px;">
+        <button class="ai-extender-all-btn" id="ai-fix-all">✨ まとめてAI修正（爆速）</button>
+        <div class="ai-extender-section" data-type="title">
+          <div class="ai-extender-label">TITLE CLEANING <span class="ai-extender-counter">0/40</span></div>
+          <div class="ai-extender-btn-group">
+            <button class="ai-extender-btn" id="ai-fix-title">タイトル修正</button>
+            <button class="ai-extender-copy-btn" data-target="title">コピー</button>
+          </div>
+          <textarea class="ai-extender-result" id="ai-title-output" placeholder="タイトルがここに表示されます..."></textarea>
         </div>
-        <textarea class="ai-extender-result" id="ai-title-output" placeholder="タイトルがここに表示されます..."></textarea>
-      </div>
-      <div class="ai-extender-section" data-type="desc">
-        <div class="ai-extender-label">DESCRIPTION CLEANING</div>
-        <div class="ai-extender-btn-group">
-          <button class="ai-extender-btn" id="ai-fix-desc">本文修正</button>
-          <button class="ai-extender-copy-btn" data-target="desc">コピー</button>
+        <div class="ai-extender-section" data-type="desc">
+          <div class="ai-extender-label">DESCRIPTION CLEANING</div>
+          <div class="ai-extender-btn-group">
+            <button class="ai-extender-btn" id="ai-fix-desc">本文修正</button>
+            <button class="ai-extender-copy-btn" data-target="desc">コピー</button>
+          </div>
+          <textarea class="ai-extender-result" id="ai-desc-output" placeholder="商品説明がここに表示されます..."></textarea>
         </div>
-        <textarea class="ai-extender-result" id="ai-desc-output" placeholder="商品説明がここに表示されます..."></textarea>
+        <button class="ai-extender-send-btn" id="ai-send-all">まとめてEasyRegisterへ転送</button>
       </div>
-      <button class="ai-extender-send-btn" id="ai-send-all">まとめてEasyRegisterへ転送</button>
     `;
 
     targetH1.parentNode.insertBefore(panel, targetH1.nextSibling);
     AiExtender.state.panel = panel;
-    AiExtender.state.panel.style.display = 'none'; // 初期状態は非表示
     AiExtender.state.titleArea = panel.querySelector('#ai-title-output');
     AiExtender.state.descArea = panel.querySelector('#ai-desc-output');
 
@@ -386,7 +401,8 @@ const AiExtender = {
     panel.querySelector('#ai-fix-all').onclick = () => AiExtender.runAiAll();
     panel.querySelector('#ai-fix-title').onclick = () => AiExtender.runAi('title');
     panel.querySelector('#ai-fix-desc').onclick = () => AiExtender.runAi('desc');
-    
+    panel.querySelector('#ai-close-btn').onclick = () => AiExtender.toggle(false);
+
     panel.querySelectorAll('.ai-extender-copy-btn').forEach(btn => {
       btn.onclick = () => {
         const targetId = btn.dataset.target === 'title' ? '#ai-title-output' : '#ai-desc-output';
@@ -413,7 +429,6 @@ const AiExtender = {
       });
     };
 
-    // 文字数カウント
     const updateCounter = () => {
       const len = AiExtender.state.titleArea.value.length;
       const counter = panel.querySelector('.ai-extender-counter');
@@ -433,7 +448,6 @@ const AiExtender = {
     btn.innerText = '✨ 爆速AI実行中...';
 
     try {
-      // タイトルと説明文を並列で実行
       await Promise.all([
         AiExtender.runAi('title', true),
         AiExtender.runAi('desc', true)
@@ -459,7 +473,7 @@ const AiExtender = {
       }
     }
 
-    if (!originalContent) return alert('対象の文章が見つかりません。テキストを選択するかページを確認してください。');
+    if (!originalContent) return alert('対象の文章が見つかりません。');
 
     const btn = AiExtender.state.panel.querySelector(type === 'title' ? '#ai-fix-title' : '#ai-fix-desc');
     const output = type === 'title' ? AiExtender.state.titleArea : AiExtender.state.descArea;
@@ -481,7 +495,7 @@ const AiExtender = {
         output.value = type === 'desc' ? res.refined_text : res.refined_title;
         output.style.height = 'auto';
         output.style.height = (output.scrollHeight + 10) + 'px';
-        if (type === 'title') output.dispatchEvent(new Event('input')); // カウント更新
+        if (type === 'title') output.dispatchEvent(new Event('input'));
       } else { 
         if (!isSilent) alert('Error: ' + res.message); 
       }
@@ -497,30 +511,45 @@ const AiExtender = {
   },
 
   init: () => {
-    if (document.getElementById('ai-extender-launcher')) return;
+    const tryInjectLauncher = () => {
+      if (document.getElementById('ai-extender-launcher')) return true;
 
-    const launcher = document.createElement('div');
-    launcher.id = 'ai-extender-launcher';
-    launcher.innerText = 'AI';
-    document.body.appendChild(launcher);
+      const targetH1 = document.querySelector('h1[class*="heading__"]');
+      if (!targetH1) return false;
 
-    launcher.onclick = () => {
-      const panel = AiExtender.ensurePanel();
-      if (panel) {
-        const isHidden = panel.style.display === 'none';
-        panel.style.display = isHidden ? 'flex' : 'none';
-      }
+      const launcher = document.createElement('div');
+      launcher.id = 'ai-extender-launcher';
+      launcher.innerText = '✨ AI修正パネルを開く';
+      targetH1.parentNode.insertBefore(launcher, targetH1.nextSibling);
+
+      AiExtender.state.launcher = launcher;
+      launcher.onclick = () => AiExtender.toggle(true);
+
+      // 初期状態の復元
+      chrome.storage.local.get(['isAiPanelOpen'], (res) => {
+        if (res.isAiPanelOpen) AiExtender.toggle(true);
+        else AiExtender.toggle(false);
+      });
+
+      return true;
     };
 
-    const observer = new MutationObserver(() => {
+    if (!tryInjectLauncher()) {
+      const observer = new MutationObserver(() => {
+        if (tryInjectLauncher()) { /* 成功 */ }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    const cleanupObserver = new MutationObserver(() => {
       if (AiExtender.state.panel && !document.contains(AiExtender.state.panel)) {
         AiExtender.state.panel = null;
+        AiExtender.state.launcher = null;
       }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    cleanupObserver.observe(document.body, { childList: true, subtree: true });
   }
-  };
-// ==================================================================
+};// ==================================================================
 // 3. Router
 // ==================================================================
 const path = window.location.pathname;
