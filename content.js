@@ -3,6 +3,7 @@ const VintageExtender = {
   state: {
     nextId: '...',
     templates: {}, // { "小物": "...", "トップス": "..." }
+    hashtags_map: {}, // { "all": "#古着...", "Tシャツ": "#..." }
     currentTemplateRaw: '',
     hashtags: '#古着 #used #セレクト'
   },
@@ -64,6 +65,10 @@ const VintageExtender = {
 
         <div class="ve-row">
           <div class="ve-field"><label class="ve-label">TEMPLATE</label><select id="ve-template" class="ve-select"></select></div>
+          <div class="ve-field"><label class="ve-label">HASHTAGS</label><select id="ve-hashtag-rules" class="ve-select"></select></div>
+        </div>
+
+        <div class="ve-row">
           <div class="ve-field"><label class="ve-label">CONDITION</label>
             <select id="ve-condition" class="ve-select">
               <option value="noStains">目立った傷無し</option>
@@ -71,6 +76,7 @@ const VintageExtender = {
               <option value="junk">ジャンク</option>
             </select>
           </div>
+          <div class="ve-field" style="flex:0.5;"></div>
         </div>
 
         <div class="ve-field">
@@ -176,9 +182,15 @@ const VintageExtender = {
       document.getElementById('ve-calc-price').innerText = '¥' + Math.floor(p * (1 - d/100)).toLocaleString();
     };
 
-    ['ve-item-name', 've-free-word', 've-price', 've-discount', 've-condition', 've-template'].forEach(id => {
+    ['ve-item-name', 've-free-word', 've-price', 've-discount', 've-condition', 've-template', 've-hashtag-rules'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateOutput);
       document.getElementById(id).addEventListener('change', updateOutput);
+    });
+
+    document.getElementById('ve-hashtag-rules').addEventListener('change', (e) => {
+      const cat = e.target.value;
+      VintageExtender.state.hashtags = VintageExtender.state.hashtags_map[cat] || '';
+      updateOutput();
     });
 
     const setupCopy = (btnId, targetId) => {
@@ -228,6 +240,23 @@ const VintageExtender = {
             acc[t.title] = t.txt;
             return acc;
           }, {});
+          
+          // ハッシュタグルールの処理
+          if (res.hashtags) {
+            VintageExtender.state.hashtags_map = res.hashtags.reduce((acc, h) => {
+              acc[h.category] = h.hashtag_text;
+              return acc;
+            }, {});
+            const htSelect = document.getElementById('ve-hashtag-rules');
+            htSelect.innerHTML = res.hashtags.map(h => `<option value="${h.category}">${h.category}</option>`).join('');
+            // 初期値（allがあればそれ、なければ最初の要素）
+            const defaultCat = VintageExtender.state.hashtags_map['all'] ? 'all' : (res.hashtags[0]?.category || '');
+            if (defaultCat) {
+              htSelect.value = defaultCat;
+              VintageExtender.state.hashtags = VintageExtender.state.hashtags_map[defaultCat];
+            }
+          }
+
           VintageExtender.state.nextId = res.next_id;
           document.getElementById('ve-next-id').innerText = res.next_id;
           document.getElementById('ve-template').innerHTML = res.templates.map(t => `<option value="${t.title}">${t.title}</option>`).join('');
