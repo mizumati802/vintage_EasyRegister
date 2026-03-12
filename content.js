@@ -65,10 +65,6 @@ const VintageExtender = {
 
         <div class="ve-row">
           <div class="ve-field"><label class="ve-label">TEMPLATE</label><select id="ve-template" class="ve-select"></select></div>
-          <div class="ve-field"><label class="ve-label">HASHTAGS</label><select id="ve-hashtag-rules" class="ve-select"></select></div>
-        </div>
-
-        <div class="ve-row">
           <div class="ve-field"><label class="ve-label">CONDITION</label>
             <select id="ve-condition" class="ve-select">
               <option value="noStains">目立った傷無し</option>
@@ -76,6 +72,10 @@ const VintageExtender = {
               <option value="junk">ジャンク</option>
             </select>
           </div>
+        </div>
+
+        <div class="ve-row">
+          <div class="ve-field"><label class="ve-label">HASHTAGS</label><select id="ve-hashtag-rules" class="ve-select"></select></div>
           <div class="ve-field" style="flex:0.5;"></div>
         </div>
 
