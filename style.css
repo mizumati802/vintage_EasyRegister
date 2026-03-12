@@ -90,6 +90,20 @@
 
 .ve-textarea-small { height: 45px; font-size: 14px; }
 
+.ve-select-dark {
+  background: #000 !important;
+  border-color: #111 !important;
+  color: #444 !important;
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  transition: all 0.2s ease;
+}
+
+.ve-select-dark:hover, .ve-select-dark:focus {
+  border-color: #333 !important;
+  color: #888 !important;
+}
+
 .ve-row { display: flex; gap: 8px; }
 .ve-row > .ve-field { flex: 1; }
 

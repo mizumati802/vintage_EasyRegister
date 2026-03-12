@@ -75,7 +75,7 @@ const VintageExtender = {
         </div>
 
         <div class="ve-row">
-          <div class="ve-field"><label class="ve-label">HASHTAGS</label><select id="ve-hashtag-rules" class="ve-select"></select></div>
+          <div class="ve-field"><label class="ve-label">HASHTAGS</label><select id="ve-hashtag-rules" class="ve-select ve-select-dark"></select></div>
           <div class="ve-field" style="flex:0.5;"></div>
         </div>
 
