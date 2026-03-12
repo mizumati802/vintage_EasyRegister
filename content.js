@@ -156,6 +156,27 @@ const VintageExtender = {
 
     const updateOutput = () => {
       const title = document.getElementById('ve-item-name').value;
+
+      // Auto-select hashtags based on brackets 【 】 in title
+      const bracketMatch = title.match(/【(.*?)】/);
+      let targetCat = '生活小物'; // Default
+      if (bracketMatch) {
+        const inner = bracketMatch[1].toLowerCase();
+        // Priority 1: Heisei Grunge (Archive / 00s / Y2K)
+        if (inner.includes('archive') || inner.includes('00') || inner.includes('y2k') || inner.includes('平成')) {
+          targetCat = '平成グランジ系';
+        } 
+        // Priority 2: Vintage / 90s and older (all)
+        else if (inner.includes('vintage') || inner.includes('90') || inner.includes('80') || inner.includes('70') || inner.includes('60') || inner.includes('50')) {
+          targetCat = 'all';
+        }
+      }
+      const htSelect = document.getElementById('ve-hashtag-rules');
+      if (htSelect && VintageExtender.state.hashtags_map[targetCat] && htSelect.value !== targetCat) {
+        htSelect.value = targetCat;
+        VintageExtender.state.hashtags = VintageExtender.state.hashtags_map[targetCat];
+      }
+
       const freeWord = document.getElementById('ve-free-word').value;
       const pid = document.getElementById('ve-next-id').innerText;
       const condKey = document.getElementById('ve-condition').value;
