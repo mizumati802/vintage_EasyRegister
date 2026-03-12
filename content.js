@@ -35,7 +35,7 @@ const VintageExtender = {
       <div class="ve-body">
         <div class="ve-field" style="text-align:center; border-bottom:1px solid #333; padding-bottom:10px;">
           <span class="ve-label" style="margin:0;">PRODUCT ID</span>
-          <div id="ve-next-id" class="ve-id-display" style="font-size:24px;">...</div>
+          <div id="ve-next-id" class="ve-id-display" style="font-size:30px;">...</div>
         </div>
 
         <div class="ve-field">
@@ -60,7 +60,7 @@ const VintageExtender = {
             </select>
           </div>
         </div>
-        <div id="ve-calc-price" style="text-align:right; color:#28a745; font-weight:bold; font-size:12px; margin-bottom:10px;">¥0</div>
+        <div id="ve-calc-price" style="text-align:right; color:#28a745; font-weight:bold; font-size:15px; margin-bottom:10px;">¥0</div>
 
         <div class="ve-row">
           <div class="ve-field"><label class="ve-label">TEMPLATE</label><select id="ve-template" class="ve-select"></select></div>
@@ -75,7 +75,7 @@ const VintageExtender = {
 
         <div class="ve-field">
           <label class="ve-label">OUTPUT / DESCRIPTION (WORD)</label>
-          <textarea id="ve-word-textla" class="ve-textarea" style="height:150px; background:#000; color:#efefef; font-size:11px;"></textarea>
+          <textarea id="ve-word-textla" class="ve-textarea" style="height:150px; background:#000; color:#efefef; font-size:14px;"></textarea>
           <button id="ve-copy-word-btn" class="ve-btn" style="margin-top:5px; background:#1b5e20;">完成文をコピー</button>
         </div>
 

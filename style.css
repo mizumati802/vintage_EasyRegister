@@ -42,7 +42,7 @@
   align-items: center;
 }
 
-.ve-header span { font-size: 10px; font-weight: bold; color: #888; }
+.ve-header span { font-size: 13px; font-weight: bold; color: #888; }
 
 .ve-body {
   padding: 10px;
@@ -58,7 +58,7 @@
 .ve-field { margin-bottom: 10px; }
 
 .ve-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   color: #555;
   margin-bottom: 3px;
@@ -78,17 +78,17 @@
   color: #fff;
   padding: 6px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 15px;
   box-sizing: border-box;
 }
 
 .ve-textarea {
   height: 120px;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
-.ve-textarea-small { height: 45px; font-size: 11px; }
+.ve-textarea-small { height: 45px; font-size: 14px; }
 
 .ve-row { display: flex; gap: 8px; }
 .ve-row > .ve-field { flex: 1; }
@@ -99,7 +99,7 @@
   border: none;
   padding: 0 8px;
   border-radius: 3px;
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
 }
 
@@ -112,7 +112,7 @@
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   margin-top: 5px;
 }
 
@@ -124,12 +124,12 @@
 
 .ve-status {
   text-align: center;
-  font-size: 10px;
+  font-size: 13px;
   color: #666;
   margin-top: 8px;
 }
 
-.ve-close { background: none; border: none; color: #666; cursor: pointer; font-size: 16px; }
+.ve-close { background: none; border: none; color: #666; cursor: pointer; font-size: 20px; }
 
 /* ==================================================================
    Unified AI Extender Panel Styles
@@ -154,7 +154,7 @@
   border: none;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 13px;
+  font-size: 16px;
   cursor: pointer;
   transition: transform 0.1s, opacity 0.2s;
   margin-bottom: 5px;
@@ -171,7 +171,7 @@
 }
 
 .ai-extender-label {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
   color: #555;
   letter-spacing: 1px;
@@ -193,7 +193,7 @@
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
-  font-size: 11px;
+  font-size: 14px;
   transition: opacity 0.2s;
 }
 
@@ -204,7 +204,7 @@
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .ai-extender-result {
@@ -215,7 +215,7 @@
   border: 1px solid #333;
   border-radius: 4px;
   padding: 10px;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.5;
   resize: vertical;
   outline: none;
@@ -236,7 +236,7 @@
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 16px;
   margin-top: 5px;
   transition: background 0.2s;
 }
@@ -257,7 +257,7 @@
   cursor: pointer;
   z-index: 100;
   font-weight: bold;
-  font-size: 11px;
+  font-size: 14px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   transition: transform 0.2s, opacity 0.2s;
   width: fit-content;
