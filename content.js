@@ -519,7 +519,11 @@ const AiExtender = {
       if (type === 'title') {
         originalContent = document.querySelector('h1[class*="heading__"]')?.innerText.trim();
       } else {
-        originalContent = document.querySelector('.merShowMore pre[data-testid="description"]')?.innerText.trim();
+        originalContent = (
+          document.querySelector('pre[data-testid="description"]') || 
+          document.querySelector('[data-testid="description"]') ||
+          document.querySelector('pre.merText') // フォールバック
+        )?.innerText.trim();
       }
     }
 
@@ -585,19 +589,28 @@ const AiExtender = {
     };
 
     if (!tryInjectLauncher()) {
-      const observer = new MutationObserver(() => {
-        if (tryInjectLauncher()) { /* 成功 */ }
+      const observer = new MutationObserver((mutations, obs) => {
+        if (tryInjectLauncher()) {
+          obs.disconnect(); // 注入に成功したら監視を停止
+        }
       });
       observer.observe(document.body, { childList: true, subtree: true });
+      
+      // 10秒経っても見つからなければタイムアウトで停止（保険）
+      setTimeout(() => observer.disconnect(), 10000);
     }
 
-    const cleanupObserver = new MutationObserver(() => {
+    // cleanupObserverも不要な場合は監視を絞る
+    const cleanupObserver = new MutationObserver((mutations, obs) => {
       if (AiExtender.state.panel && !document.contains(AiExtender.state.panel)) {
         AiExtender.state.panel = null;
         AiExtender.state.launcher = null;
+        // cleanupが必要な状況であれば再度監視を始めるなどの処理が必要だが、
+        // 現状は無駄な負荷を避けるため最小限に留める
       }
     });
-    cleanupObserver.observe(document.body, { childList: true, subtree: true });
+    // body全体をsubtreeで監視し続けるのは危険なため、主要なコンテナに絞るか監視を弱める
+    cleanupObserver.observe(document.body, { childList: true });
   }
 };// ==================================================================
 // 3. Router
@@ -605,7 +618,7 @@ const AiExtender = {
 const path = window.location.pathname;
 if (path.includes('/sell/create') || path.includes('/sell/draft/')) {
   VintageExtender.init();
-} else if (path.includes('/item/') || path.includes('/products/')) {
+} else if (path.includes('/item/') || path.includes('/products/') || path.includes('/shops/product/')) {
   AiExtender.init();
 }
 
